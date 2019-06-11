@@ -1,3 +1,5 @@
+import pandas as pd
+import json
 from argparse import ArgumentParser
 import nltk
 import string
@@ -94,10 +96,29 @@ def test_model(chat_bot_model):
             break
 
 
+def create_model_readable(path, json_path):
+    with open(json_path, 'r') as f:
+        json_temp = json.load(f)
+
+    df = pd.DataFrame(json_temp)
+
+    with open(path, 'w') as f:
+        for counter, row in df.iterrows():
+            if row['text'] is None:
+                print(f"Not adding {counter}")
+            else:
+                f.write('{}\n'.format(row['text']))
+                
+
 def main():
     parser = ArgumentParser(description="specify file to read from")
     parser.add_argument('-p', '--path', help="path to the text file to train on", required=True)
+    parser.add_argument('-j', '--json-path', help="accepts a json file as input and creates a new txt file and keeps"
+                                                  "that new file in the model, set the location to the path arguments")
     args = parser.parse_args()
+
+    if args.json_path is not None:
+        create_model_readable(args.path, args.json_path)
 
     chat_bot = ChatBotModel(args.path)
 
