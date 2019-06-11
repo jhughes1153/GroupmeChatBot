@@ -1,0 +1,108 @@
+from argparse import ArgumentParser
+import nltk
+import string
+import random
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+
+
+GREETING_INPUTS = ("hello", "hi", "greetings", "sup", "what's up", "hey",)
+GREETING_RESPONSES = ["hi", "hey", "*nods*", "hi there", "hello", "I am glad! You are talking to me"]
+
+
+class ChatBotModel:
+    def __init__(self, file):
+        self.lemmer = None
+        self.sent_tokens = None
+        self.parse_file(file)
+
+    def parse_file(self, file):
+        with open(file, 'r') as f:
+            raw = f.read()
+            print(f"Finished parsing {file}")
+
+        raw = raw.lower()
+
+        self.sent_tokens = nltk.sent_tokenize(raw)
+        self.lemmer = nltk.stem.WordNetLemmatizer()
+
+    def lem_tokens(self, tokens):
+        return [self.lemmer.lemmatize(token) for token in tokens]
+
+    def lem_normalize(self, text):
+        remove_punct_dict = dict((ord(punct), None) for punct in string.punctuation)
+        return self.lem_tokens(nltk.word_tokenize(text.lower().translate(remove_punct_dict)))
+
+    def gen_response(self, user_response):
+        robo_response = ''
+        self.sent_tokens.append(user_response)
+        tfidvec = TfidfVectorizer(tokenizer=self.lem_normalize, stop_words='english')
+        tfidf = tfidvec.fit_transform(self.sent_tokens)
+        vals = cosine_similarity(tfidf[-1], tfidf)
+        idx = vals.argsort()[0][-2]
+        flat = vals.flatten()
+        flat.sort()
+        req_tfidf = flat[-2]
+        if req_tfidf == 0:
+            robo_response = f"{robo_response} I'm sorry, I don't understand you"
+            return robo_response
+        else:
+            robo_response = f"{robo_response} {self.sent_tokens[idx]}"
+            return robo_response
+
+
+def greeting(sentence):
+    for word in sentence.split():
+        if word.lower() in GREETING_INPUTS:
+            return random.choice(GREETING_RESPONSES)
+
+
+def respond(chat_bot_model, user_response):
+    if user_response != 'bye':
+        if user_response in ('thanks', 'thank you'):
+            print("Fuck off ya wee bitch")
+            break
+        else:
+            if greeting(user_response) is not None:
+                greet = greeting(user_response)
+                print(f"ROBO: {greet}")
+            else:
+                print("ROBO:", end="")
+                print(chat_bot_model.gen_response(user_response))
+                chat_bot_model.sent_tokens.remove(user_response)
+
+
+def test_model(chat_bot_model):
+    print("ROBO: My name is Robo. I will answer your queries about Chatbots. If you want to exit, type Bye!")
+    while True:
+        user_response = input()
+        user_response = user_response.lower()
+        if user_response != 'bye':
+            if user_response in ('thanks', 'thank you'):
+                print("Fuck off ya wee bitch")
+                break
+            else:
+                if greeting(user_response) is not None:
+                    greet = greeting(user_response)
+                    print(f"ROBO: {greet}")
+                else:
+                    print("ROBO:", end="")
+                    print(chat_bot_model.gen_response(user_response))
+                    chat_bot_model.sent_tokens.remove(user_response)
+        else:
+            print("ROBO: Bye! take care...")
+            break
+
+
+def main():
+    parser = ArgumentParser(description="specify file to read from")
+    parser.add_argument('-p', '--path', help="path to the text file to train on", required=True)
+    args = parser.parse_args()
+
+    chat_bot = ChatBotModel(args.path)
+
+    test_model(chat_bot)
+
+
+if __name__ == '__main__':
+    main()
