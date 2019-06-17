@@ -7,7 +7,6 @@ import random
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-
 GREETING_INPUTS = ("hello", "hi", "greetings", "sup", "what's up", "hey",)
 GREETING_RESPONSES = ["hi", "hey", "*nods*", "hi there", "hello", "I am glad! You are talking to me"]
 
@@ -108,7 +107,7 @@ def create_model_readable(path, json_path):
                 print(f"Not adding {counter}")
             else:
                 f.write('{}\n'.format(row['text']))
-                
+
 
 def main():
     parser = ArgumentParser(description="specify file to read from")
