@@ -2,19 +2,56 @@ import mysql.connector
 import requests
 import time
 import configparser
-import json
+import argparse
+import os
+#import json
 
+parser = argparse.ArgumentParser()
+
+parser.add_argument("--token", help="add groupme token")
+parser.add_argument("--host", help="add sql hostname")
+parser.add_argument("--user", help="add sql username")
+parser.add_argument("--password", help="add sql password")
+
+args = parser.parse_args()
+
+if args.token is None:
+    f = open('token.txt', 'r')
+    token = f.read()
+    # print(token)
+    f.close()
+    if not token:
+        exit(-1)
+else:
+    token = args.token
+
+if args.host is None or args.user is None or args.password is None:
+    if os.path.exists('config.ini'):
+        config = configparser.ConfigParser()
+        config.read('config.ini')
+
+        mydb = mysql.connector.connect(
+            host=config['DEFAULT']['HOST'],
+            user=config['DEFAULT']['USER'],
+            passwd=config['DEFAULT']['PASS'],
+            database="groupmebot"
+        )
+    else:
+        exit(-1)
+else:
+    mydb = mysql.connector.connect(
+        host=args.host,
+        user=args.user,
+        passwd=args.password,
+        database="groupmebot"
+    )
+
+
+
+'''
 # SQL SETUP #
 
-config = configparser.ConfigParser()
-config.read('config.ini')
 
-mydb = mysql.connector.connect(
-  host=config['DEFAULT']['HOST'],
-  user=config['DEFAULT']['USER'],
-  passwd=config['DEFAULT']['PASS'],
-  database="groupmebot"
-)
 cursor = mydb.cursor()
 
 #Accessing group#
@@ -22,19 +59,13 @@ f = open('token.txt', 'r')
 token = f.read()
 #print(token)
 f.close()
-
+'''
 GroupId = '16915455'
 
 request_params = {'token': token}
 response_url = 'https://api.groupme.com/v3/groups/'+GroupId+'/messages'
 message_ids = []
 
-'''---- SQL Example Code-----
-sql = "SELECT * FROM messages"
-cursor.execute(sql)
-print(cursor.fetchall())
-cursor.close()
-'''
 
 #i=0
 #while i<1:
@@ -70,6 +101,5 @@ while True:
             cursor.close()
     #i=1
     time.sleep(5)
-
 
 
