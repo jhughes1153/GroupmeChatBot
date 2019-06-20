@@ -62,7 +62,6 @@ def respond(chat_bot_model, user_response):
     if user_response != 'bye':
         if user_response in ('thanks', 'thank you'):
             print("Fuck off ya wee bitch")
-            break
         else:
             if greeting(user_response) is not None:
                 greet = greeting(user_response)
