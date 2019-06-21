@@ -55,7 +55,6 @@ def main():
     finally:
         print('Closing loop')
         loop.close()
-        messages = requests.get(response_url, params=request_params)
 
 
 if __name__ == '__main__':
