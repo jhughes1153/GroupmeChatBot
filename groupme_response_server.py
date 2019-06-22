@@ -12,23 +12,24 @@ time so we can add that later
 """
 
 
-class MessageHandler:
-    def __init__(self, messages):
-        self.messages = messages
-
-    def reset_messages(self):
-        self.messages = []
+class MostRecentStruct:
+    def __init__(self, id_, message):
+        self.id_ = id_
+        self.messages = message
 
 
-async def read_message(response_url, request_params):
+async def read_message(response_url, request_params, most_recent_struct):
     while True:
         await asyncio.sleep(60)
-        messages = requests.get(response_url, params=request_params)
+        messages = requests.get(response_url, params=request_params).json()['response']['messages']
+        most_recent_struct.message = messages[0]['text']
+        most_recent_struct.id_ = messages[0]['id']
 
 
-async def send_message():
+async def send_message(most_recent_struct, chatbot):
     while True:
         await asyncio.sleep(5)
+        
 
 
 def main():
@@ -42,12 +43,13 @@ def main():
     response_url = 'https://api.groupme.com/v3/groups/16915455/messages'
 
     chatbot = chatbot_models.ChatBotModel(args.model_input_file)
+    most_recent_struct = MostRecentStruct('', '')
 
     loop = asyncio.get_event_loop()
 
     try:
-        asyncio.ensure_future(read_message(request_params, response_url))
-        asyncio.ensure_future(send_message())
+        asyncio.ensure_future(read_message(request_params, response_url, most_recent_struct))
+        asyncio.ensure_future(send_message(most_recent_struct, chatbot))
 
         loop.run_forever()
     except KeyboardInterrupt:
