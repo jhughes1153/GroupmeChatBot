@@ -1,27 +1,37 @@
 import pymysql
 import configparser
 
+"""
+Usage:
+    
+    database.init_database('db', 'DEFAULT', '/home/jackh/config.ini')
+    
+    then at anytime after that just call:
+    output = database.execute('db', 'SELECT * FROM FOO')
+"""
+
+
 database_engines = {}
 
 
-def init_database(name, account, config_file):
-    config = configparser.ConfigParser().read(config_file)
-    with pymysql.connect(
+def init_database(name: str, account: str, config_file: str):
+    config = configparser.ConfigParser()
+    config.read(config_file)
+    connection = pymysql.connect(
         host=config[account]['HOST'],
         user=config[account]['USER'],
-        password=config[account]['PASS'],
-        db='groupmebot'
-    ) as conn:
-        database_engines[name] = conn.cursor()
+        password=config[account]['PASSWORD'],
+        db=config[account]['DATABASE'],
+        cursorclass=pymysql.cursors.DictCursor
+    )
+    database_engines[name] = connection
 
 
-def execute(name, sql):
+def execute(name: str, sql: str) -> list:
     """This function not good for large queries"""
-    output = database_engines[name].execute(sql).fetchall()
-    database_engines[name].commit()
+    with database_engines[name].cursor() as cursor:
+        cursor.execute(sql)
+        output = cursor.fetchall()
+        print(output)
+        database_engines[name].commit()
     return output
-
-
-def close(name):
-    database_engines[name].close()
-
