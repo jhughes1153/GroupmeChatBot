@@ -12,24 +12,39 @@ time so we can add that later
 """
 
 
-class MostRecentStruct:
-    def __init__(self, id_, message):
-        self.id_ = id_
-        self.messages = message
+class MostRecentId:
+    def __init__(self, unique_id):
+        self.unique_id = unique_id
 
 
-async def read_message(response_url, request_params, most_recent_struct):
+class RequestHelper:
+    def __init__(self, url, request_params, post_params):
+        self.url = url
+        self.request_params = request_params
+        self.post_params = post_params
+
+
+async def read_message(request_helper, most_recent, chatbot):
     while True:
         await asyncio.sleep(60)
-        messages = requests.get(response_url, params=request_params).json()['response']['messages']
-        most_recent_struct.message = messages[0]['text']
-        most_recent_struct.id_ = messages[0]['id']
+        messages = requests.get(request_helper, params=request_helper.request_params).json()['response']['messages']
+        for m in messages:
+            if m['id'] > most_recent.unique_id:
+                append_database(m['id'], m['text'], m['sender_id '])
+                most_recent.unique_id = m['id']
+                if '@bot' in m['text']:
+                    send_message(chatbot, m['text'], request_helper)
 
 
-async def send_message(most_recent_struct, chatbot):
-    while True:
-        await asyncio.sleep(5)
-        
+def append_database(id_, message, sender):
+    print(id_, message, sender)
+
+
+def send_message(chatbot: chatbot_models.ChatBotModel, message: str, request_helper: RequestHelper) -> None:
+    message = message.split('@bot')[0]
+    chatbot_models.respond(chatbot, message)
+    # hardcoded to be annoyancebot right now
+    requests.post('https://api.groupme/v3/bots/post', request_helper.post_params)
 
 
 def main():
@@ -37,20 +52,22 @@ def main():
     parser.add_argument('-t', '--token', help='Groupme token', required=True)
     parser.add_argument('-a', '--account', help='Database account to access')
     parser.add_argument('-i', '--model-input-file', help='txt file for the model')
+    parser.add_argument('-b', '--bot-id', help='bot id to use for groupme response', required=True)
     args = parser.parse_args()
 
     request_params = {'token': args.token}
+    post_params = {'bot_id': args.bot_id}
     response_url = 'https://api.groupme.com/v3/groups/16915455/messages'
 
+    request_helper = RequestHelper(response_url, request_params, post_params)
+
     chatbot = chatbot_models.ChatBotModel(args.model_input_file)
-    most_recent_struct = MostRecentStruct('', '')
+    most_recent = MostRecentId(0)
 
     loop = asyncio.get_event_loop()
 
     try:
-        asyncio.ensure_future(read_message(request_params, response_url, most_recent_struct))
-        asyncio.ensure_future(send_message(most_recent_struct, chatbot))
-
+        asyncio.ensure_future(read_message(request_helper, most_recent, chatbot))
         loop.run_forever()
     except KeyboardInterrupt:
         pass
