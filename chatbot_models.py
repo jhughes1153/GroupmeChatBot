@@ -58,18 +58,10 @@ def greeting(sentence):
             return random.choice(GREETING_RESPONSES)
 
 
-def respond(chat_bot_model, user_response):
-    if user_response != 'bye':
-        if user_response in ('thanks', 'thank you'):
-            print("Fuck off ya wee bitch")
-        else:
-            if greeting(user_response) is not None:
-                greet = greeting(user_response)
-                print(f"ROBO: {greet}")
-            else:
-                print("ROBO:", end="")
-                print(chat_bot_model.gen_response(user_response))
-                chat_bot_model.sent_tokens.remove(user_response)
+def respond(chat_bot_model: ChatBotModel, user_response: str) -> str:
+    response = chat_bot_model.gen_response(user_response)
+    chat_bot_model.sent_tokens.remove(user_response)
+    return response
 
 
 def test_model(chat_bot_model):
