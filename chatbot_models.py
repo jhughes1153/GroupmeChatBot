@@ -12,12 +12,12 @@ GREETING_RESPONSES = ["hi", "hey", "*nods*", "hi there", "hello", "I am glad! Yo
 
 
 class ChatBotModel:
-    def __init__(self, file):
+    def __init__(self, file: str):
         self.lemmer = None
         self.sent_tokens = None
         self.parse_file(file)
 
-    def parse_file(self, file):
+    def parse_file(self, file: str):
         with open(file, 'r') as f:
             raw = f.read()
             print(f"Finished parsing {file}")
@@ -34,7 +34,7 @@ class ChatBotModel:
         remove_punct_dict = dict((ord(punct), None) for punct in string.punctuation)
         return self.lem_tokens(nltk.word_tokenize(text.lower().translate(remove_punct_dict)))
 
-    def gen_response(self, user_response):
+    def gen_response(self, user_response: str) -> str:
         robo_response = ''
         self.sent_tokens.append(user_response)
         tfidvec = TfidfVectorizer(tokenizer=self.lem_normalize, stop_words='english')
@@ -52,19 +52,20 @@ class ChatBotModel:
             return robo_response
 
 
-def greeting(sentence):
+def greeting(sentence: str):
     for word in sentence.split():
         if word.lower() in GREETING_INPUTS:
             return random.choice(GREETING_RESPONSES)
 
 
 def respond(chat_bot_model: ChatBotModel, user_response: str) -> str:
-    response = chat_bot_model.gen_response(user_response)
-    chat_bot_model.sent_tokens.remove(user_response)
-    return response
+        chatbot_response = chat_bot_model.gen_response(user_response)
+        chat_bot_model.sent_tokens.remove(user_response)
+
+        return chatbot_response
 
 
-def test_model(chat_bot_model):
+def test_model(chat_bot_model: ChatBotModel):
     print("ROBO: My name is Robo. I will answer your queries about Chatbots. If you want to exit, type Bye!")
     while True:
         user_response = input()
@@ -86,7 +87,7 @@ def test_model(chat_bot_model):
             break
 
 
-def create_model_readable(path, json_path):
+def create_model_readable(path: str, json_path: str):
     with open(json_path, 'r') as f:
         json_temp = json.load(f)
 
