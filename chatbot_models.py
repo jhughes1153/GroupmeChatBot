@@ -59,10 +59,10 @@ def greeting(sentence: str):
 
 
 def respond(chat_bot_model: ChatBotModel, user_response: str) -> str:
-        chatbot_response = chat_bot_model.gen_response(user_response)
-        chat_bot_model.sent_tokens.remove(user_response)
+    chatbot_response = chat_bot_model.gen_response(user_response)
+    chat_bot_model.sent_tokens.remove(user_response)
 
-        return chatbot_response
+    return chatbot_response
 
 
 def test_model(chat_bot_model: ChatBotModel):
