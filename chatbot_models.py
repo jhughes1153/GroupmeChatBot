@@ -1,5 +1,6 @@
 import pandas as pd
 import json
+import os
 from argparse import ArgumentParser
 import nltk
 import string
@@ -87,7 +88,7 @@ def test_model(chat_bot_model: ChatBotModel):
             break
 
 
-def create_model_readable(path: str, json_path: str):
+def create_model_readable_from_file(path: str, json_path: str) -> None:
     with open(json_path, 'r') as f:
         json_temp = json.load(f)
 
@@ -99,6 +100,29 @@ def create_model_readable(path: str, json_path: str):
                 print(f"Not adding {counter}")
             else:
                 f.write('{}\n'.format(row['text']))
+
+
+def create_model_readable(path: str, json_directory_path: str) -> None:
+    traverse = os.listdir(json_directory_path)
+
+    new_df = pd.DataFrame()
+    state = True
+    for directory in traverse:
+        with open(f'{json_directory_path}/{directory}/message.json', 'r') as f:
+            if state:
+                new_df = pd.DataFrame(json.load(f))
+                state = False
+            else:
+                new_df = new_df.append(json.load(f))
+
+    new_df = new_df.reset_index()
+
+    with open(path, 'w') as f:
+        for counter, row in new_df.iterrows():
+            if row['text'] is None:
+                print(f'Not adding {counter}')
+            else:
+                f.write(f"{row['text']}\n")
 
 
 def main():
