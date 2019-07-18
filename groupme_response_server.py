@@ -12,6 +12,8 @@ as it currently takes a static file, but ChatBotModel can take a file at any
 time so we can add that later
 """
 
+db_mappings = {'id': 'ID', 'created_at': 'CREATED_AT', 'name': 'NAME', 'text': 'MESSAGE', 'user_id': 'USER_ID'}
+
 
 class MostRecentId:
     def __init__(self, unique_id):
@@ -27,7 +29,7 @@ class RequestHelper:
 
 async def read_message(request_helper, most_recent, chatbot):
     while True:
-        await asyncio.sleep(60)
+        await asyncio.sleep(120)
         print(request_helper.url)
         print(request_helper.request_params)
         request = requests.get(request_helper.url, params=request_helper.request_params)
@@ -40,15 +42,21 @@ async def read_message(request_helper, most_recent, chatbot):
             print(most_recent.unique_id)
             for m in messages:
                 if m['created_at'] > most_recent.unique_id:
+                    most_recent.unique_id = m['created_at']
+                    if m['text'] is None:
+                        continue
                     print(m)
-                    # append_database(m['id'], m['text'], m['sender_id '])
+                    append_database(m['id'], m['created_at'], m['name'], m['text'], m['user_id'])
                     if '@bot' in m['text']:
-                        most_recent.unique_id = m['created_at']
+                        print('Appending database')
                         send_message(chatbot, m['text'], request_helper)
 
 
-def append_database(id_, message, sender):
-    database.execute('groupmebot', f'INSERT INTO groupmebot.messages VALUES({message}, {id_}, {sender})')
+def append_database(id_, created_at, name, message, sender):
+    message = message.replace("'", '').replace('"', '')
+    name = name.replace("'", '').replace('"', '')
+    database.execute('groupmebot', f"INSERT INTO GROUPMEBOT.MESSAGES VALUES('{id_}', {created_at}, '{name}', '{message}', "
+                                   f"{sender})")
 
 
 def send_message(chatbot: chatbot_models.ChatBotModel, message: str, request_helper: RequestHelper) -> None:
@@ -67,7 +75,7 @@ def send_message(chatbot: chatbot_models.ChatBotModel, message: str, request_hel
 
 def init_most_recent(most_recent):
     most_recent.unique_id = database.execute('groupmebot', 'SELECT MAX(CREATED_AT) FROM '
-                                                           'groupmebot.messages')[0]['MAX(CREATED_AT)']
+                                                           'GROUPMEBOT.MESSAGES')[0]['MAX(CREATED_AT)']
 
 
 def main():
@@ -102,6 +110,7 @@ def main():
     finally:
         print('Closing loop')
         loop.close()
+        send_message(chatbot, 'Crashing', request_helper)
 
 
 if __name__ == '__main__':
