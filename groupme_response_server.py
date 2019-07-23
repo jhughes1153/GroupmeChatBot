@@ -30,10 +30,7 @@ class RequestHelper:
 async def read_message(request_helper, most_recent, chatbot):
     while True:
         await asyncio.sleep(300)
-        print(request_helper.url)
-        print(request_helper.request_params)
         request = requests.get(request_helper.url, params=request_helper.request_params)
-        print(request.url)
         print(request.status_code)
         if request.status_code != 200:
             print('Failed to get anything skipping I guess')
@@ -42,6 +39,7 @@ async def read_message(request_helper, most_recent, chatbot):
             print(most_recent.unique_id)
             for m in messages:
                 if m['created_at'] > most_recent.unique_id:
+                    print(m['text'])
                     most_recent.unique_id = m['created_at']
                     if m['text'] is None:
                         continue
@@ -53,19 +51,21 @@ async def read_message(request_helper, most_recent, chatbot):
 
 def append_database(id_, created_at, name, message, sender):
     print(f'Appending message: {created_at}')
+    print(f'Messages: {message}, sender: {sender}')
     message = message.replace("'", '').replace('"', '')
     name = name.replace("'", '').replace('"', '')
     try:
         database.execute('groupmebot', f"INSERT INTO GROUPMEBOT.MESSAGES VALUES('{id_}', {created_at}, '{name}', '{message}', "
                                        f"{sender})")
     except Exception as e:
+        print(e)
         print('Failed to upload to database')
 
 
 def send_message(chatbot: chatbot_models.ChatBotModel, message: str, request_helper: RequestHelper) -> None:
     message = message.replace(' @bot', '')
     print(message)
-    response = str(chatbot_models.respond(chatbot, message))
+    response = str(chatbot_models.respond(chatbot, message)).split('\n')[0]
     print(type(response))
     print(response)
     request_helper.post_params['text'] = response
