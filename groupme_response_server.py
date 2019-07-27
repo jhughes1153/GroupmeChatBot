@@ -12,6 +12,8 @@ as it currently takes a static file, but ChatBotModel can take a file at any
 time so we can add that later
 """
 
+db_mappings = {'id': 'ID', 'created_at': 'CREATED_AT', 'name': 'NAME', 'text': 'MESSAGE', 'user_id': 'USER_ID'}
+
 
 class MostRecentId:
     def __init__(self, unique_id):
@@ -27,11 +29,8 @@ class RequestHelper:
 
 async def read_message(request_helper, most_recent, chatbot):
     while True:
-        await asyncio.sleep(60)
-        print(request_helper.url)
-        print(request_helper.request_params)
+        await asyncio.sleep(300)
         request = requests.get(request_helper.url, params=request_helper.request_params)
-        print(request.url)
         print(request.status_code)
         if request.status_code != 200:
             print('Failed to get anything skipping I guess')
@@ -40,21 +39,33 @@ async def read_message(request_helper, most_recent, chatbot):
             print(most_recent.unique_id)
             for m in messages:
                 if m['created_at'] > most_recent.unique_id:
-                    print(m)
-                    # append_database(m['id'], m['text'], m['sender_id '])
+                    print(m['text'])
+                    most_recent.unique_id = m['created_at']
+                    if m['text'] is None:
+                        continue
+                    append_database(m['id'], m['created_at'], m['name'], m['text'], m['user_id'])
                     if '@bot' in m['text']:
-                        most_recent.unique_id = m['created_at']
+                        print('Appending database')
                         send_message(chatbot, m['text'], request_helper)
 
 
-def append_database(id_, message, sender):
-    database.execute('groupmebot', f'INSERT INTO groupmebot.messages VALUES({message}, {id_}, {sender})')
+def append_database(id_, created_at, name, message, sender):
+    print(f'Appending message: {created_at}')
+    print(f'Messages: {message}, sender: {sender}')
+    message = message.replace("'", '').replace('"', '')
+    name = name.replace("'", '').replace('"', '')
+    try:
+        database.execute('groupmebot', f"INSERT INTO GROUPMEBOT.MESSAGES VALUES('{id_}', {created_at}, '{name}', '{message}', "
+                                       f"{sender})")
+    except Exception as e:
+        print(e)
+        print('Failed to upload to database')
 
 
 def send_message(chatbot: chatbot_models.ChatBotModel, message: str, request_helper: RequestHelper) -> None:
     message = message.replace(' @bot', '')
     print(message)
-    response = str(chatbot_models.respond(chatbot, message))
+    response = str(chatbot_models.respond(chatbot, message)).split('\n')[0]
     print(type(response))
     print(response)
     request_helper.post_params['text'] = response
@@ -67,7 +78,7 @@ def send_message(chatbot: chatbot_models.ChatBotModel, message: str, request_hel
 
 def init_most_recent(most_recent):
     most_recent.unique_id = database.execute('groupmebot', 'SELECT MAX(CREATED_AT) FROM '
-                                                           'groupmebot.messages')[0]['MAX(CREATED_AT)']
+                                                           'GROUPMEBOT.MESSAGES')[0]['MAX(CREATED_AT)']
 
 
 def main():
@@ -102,6 +113,8 @@ def main():
     finally:
         print('Closing loop')
         loop.close()
+        request_helper.post_params['text'] = 'Crashing gracefully'
+        requests.post('https://api.groupme.com/v3/bots/post', params=request_helper.post_params)
 
 
 if __name__ == '__main__':
