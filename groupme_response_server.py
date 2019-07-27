@@ -3,6 +3,8 @@ from argparse import ArgumentParser
 import chatbot_models
 import asyncio
 import database
+from logger import LoggingEnv
+import logging
 
 """
 Main server, makes requests and send messages to chatbot
@@ -11,6 +13,8 @@ Lets worry about database connectivity after we already have this up and running
 as it currently takes a static file, but ChatBotModel can take a file at any
 time so we can add that later
 """
+
+db_mappings = {'id': 'ID', 'created_at': 'CREATED_AT', 'name': 'NAME', 'text': 'MESSAGE', 'user_id': 'USER_ID'}
 
 
 class MostRecentId:
@@ -27,47 +31,56 @@ class RequestHelper:
 
 async def read_message(request_helper, most_recent, chatbot):
     while True:
-        await asyncio.sleep(60)
-        print(request_helper.url)
-        print(request_helper.request_params)
+        await asyncio.sleep(300)
         request = requests.get(request_helper.url, params=request_helper.request_params)
-        print(request.url)
-        print(request.status_code)
+        logging.info(request.status_code)
         if request.status_code != 200:
-            print('Failed to get anything skipping I guess')
+            logging.error('Failed to get anything skipping I guess')
         else:
             messages = request.json()['response']['messages']
-            print(most_recent.unique_id)
+            logging.info(most_recent.unique_id)
             for m in messages:
                 if m['created_at'] > most_recent.unique_id:
-                    print(m)
-                    # append_database(m['id'], m['text'], m['sender_id '])
+                    logging.info(m['text'])
+                    most_recent.unique_id = m['created_at']
+                    if m['text'] is None:
+                        continue
+                    append_database(m['id'], m['created_at'], m['name'], m['text'], m['user_id'])
                     if '@bot' in m['text']:
-                        most_recent.unique_id = m['created_at']
+                        logging.info('Appending database')
                         send_message(chatbot, m['text'], request_helper)
 
 
-def append_database(id_, message, sender):
-    database.execute('groupmebot', f'INSERT INTO groupmebot.messages VALUES({message}, {id_}, {sender})')
+def append_database(id_, created_at, name, message, sender):
+    logging.info(f'Appending message: {created_at}')
+    logging.info(f'Messages: {message}, sender: {sender}')
+    message = message.replace("'", '').replace('"', '')
+    name = name.replace("'", '').replace('"', '')
+    try:
+        database.execute('groupmebot', f"INSERT INTO GROUPMEBOT.MESSAGES VALUES('{id_}', {created_at}, '{name}', '{message}', "
+                                       f"{sender})")
+    except Exception as e:
+        logging.error(e)
+        logging.error('Failed to upload to database')
 
 
 def send_message(chatbot: chatbot_models.ChatBotModel, message: str, request_helper: RequestHelper) -> None:
     message = message.replace(' @bot', '')
-    print(message)
-    response = str(chatbot_models.respond(chatbot, message))
-    print(type(response))
-    print(response)
+    logging.info(message)
+    response = str(chatbot_models.respond(chatbot, message)).split('\n')[0]
+    logging.info(type(response))
+    logging.info(response)
     request_helper.post_params['text'] = response
-    print("Printing what is inside of the dictionary")
-    print(request_helper.post_params)
+    logging.info("Printing what is inside of the dictionary")
+    logging.info(request_helper.post_params)
     # hardcoded to be annoyancebot right now
-    print("sending messages")
+    logging.info("sending messages")
     requests.post('https://api.groupme.com/v3/bots/post', params=request_helper.post_params)
 
 
 def init_most_recent(most_recent):
     most_recent.unique_id = database.execute('groupmebot', 'SELECT MAX(CREATED_AT) FROM '
-                                                           'groupmebot.messages')[0]['MAX(CREATED_AT)']
+                                                           'GROUPMEBOT.MESSAGES')[0]['MAX(CREATED_AT)']
 
 
 def main():
@@ -79,6 +92,8 @@ def main():
                         default='4a38538df10cf8273ed53752bc')
     parser.add_argument('-c', '--config-path', help='path to the db config file', required=True)
     args = parser.parse_args()
+
+    LoggingEnv("GroupmeChatBot")
 
     request_params = {'token': args.token}
     post_params = {'bot_id': args.bot_id, 'text': 'Testing for fucks sake'}
@@ -100,8 +115,10 @@ def main():
     except KeyboardInterrupt:
         pass
     finally:
-        print('Closing loop')
+        logging.info('Closing loop')
         loop.close()
+        request_helper.post_params['text'] = 'Crashing gracefully'
+        requests.post('https://api.groupme.com/v3/bots/post', params=request_helper.post_params)
 
 
 if __name__ == '__main__':

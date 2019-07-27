@@ -7,6 +7,7 @@ import string
 import random
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+import logging
 
 GREETING_INPUTS = ("hello", "hi", "greetings", "sup", "what's up", "hey",)
 GREETING_RESPONSES = ["hi", "hey", "*nods*", "hi there", "hello", "I am glad! You are talking to me"]
@@ -21,7 +22,7 @@ class ChatBotModel:
     def parse_file(self, file: str):
         with open(file, 'r') as f:
             raw = f.read()
-            print(f"Finished parsing {file}")
+            logging.info(f"Finished parsing {file}")
 
         raw = raw.lower()
 
@@ -62,7 +63,7 @@ def greeting(sentence: str):
 def respond(chat_bot_model: ChatBotModel, user_response: str) -> str:
     chatbot_response = chat_bot_model.gen_response(user_response)
     chat_bot_model.sent_tokens.remove(user_response)
-
+    logging.info(chatbot_response)
     return chatbot_response
 
 
