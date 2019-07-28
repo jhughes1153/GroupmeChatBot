@@ -3,6 +3,8 @@ from argparse import ArgumentParser
 import chatbot_models
 import asyncio
 import database
+from logger import LoggingEnv
+import logging
 
 """
 Main server, makes requests and send messages to chatbot
@@ -31,48 +33,48 @@ async def read_message(request_helper, most_recent, chatbot):
     while True:
         await asyncio.sleep(300)
         request = requests.get(request_helper.url, params=request_helper.request_params)
-        print(request.status_code)
+        logging.info(request.status_code)
         if request.status_code != 200:
-            print('Failed to get anything skipping I guess')
+            logging.error('Failed to get anything skipping I guess')
         else:
             messages = request.json()['response']['messages']
-            print(most_recent.unique_id)
+            logging.info(most_recent.unique_id)
             for m in messages:
                 if m['created_at'] > most_recent.unique_id:
-                    print(m['text'])
+                    logging.info(m['text'])
                     most_recent.unique_id = m['created_at']
                     if m['text'] is None:
                         continue
                     append_database(m['id'], m['created_at'], m['name'], m['text'], m['user_id'])
                     if '@bot' in m['text']:
-                        print('Appending database')
+                        logging.info('Appending database')
                         send_message(chatbot, m['text'], request_helper)
 
 
 def append_database(id_, created_at, name, message, sender):
-    print(f'Appending message: {created_at}')
-    print(f'Messages: {message}, sender: {sender}')
+    logging.info(f'Appending message: {created_at}')
+    logging.info(f'Messages: {message}, sender: {sender}')
     message = message.replace("'", '').replace('"', '')
     name = name.replace("'", '').replace('"', '')
     try:
         database.execute('groupmebot', f"INSERT INTO GROUPMEBOT.MESSAGES VALUES('{id_}', {created_at}, '{name}', '{message}', "
                                        f"{sender})")
     except Exception as e:
-        print(e)
-        print('Failed to upload to database')
+        logging.error(e)
+        logging.error('Failed to upload to database')
 
 
 def send_message(chatbot: chatbot_models.ChatBotModel, message: str, request_helper: RequestHelper) -> None:
     message = message.replace(' @bot', '')
-    print(message)
+    logging.info(message)
     response = str(chatbot_models.respond(chatbot, message)).split('\n')[0]
-    print(type(response))
-    print(response)
+    logging.info(type(response))
+    logging.info(response)
     request_helper.post_params['text'] = response
-    print("Printing what is inside of the dictionary")
-    print(request_helper.post_params)
+    logging.info("Printing what is inside of the dictionary")
+    logging.info(request_helper.post_params)
     # hardcoded to be annoyancebot right now
-    print("sending messages")
+    logging.info("sending messages")
     requests.post('https://api.groupme.com/v3/bots/post', params=request_helper.post_params)
 
 
@@ -90,6 +92,8 @@ def main():
                         default='4a38538df10cf8273ed53752bc')
     parser.add_argument('-c', '--config-path', help='path to the db config file', required=True)
     args = parser.parse_args()
+
+    LoggingEnv("GroupmeChatBot")
 
     request_params = {'token': args.token}
     post_params = {'bot_id': args.bot_id, 'text': 'Testing for fucks sake'}
@@ -111,7 +115,7 @@ def main():
     except KeyboardInterrupt:
         pass
     finally:
-        print('Closing loop')
+        logging.info('Closing loop')
         loop.close()
         request_helper.post_params['text'] = 'Crashing gracefully'
         requests.post('https://api.groupme.com/v3/bots/post', params=request_helper.post_params)

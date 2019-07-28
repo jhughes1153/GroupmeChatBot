@@ -1,5 +1,6 @@
 import pymysql
 import configparser
+import logging
 
 """
 Usage:
@@ -24,11 +25,13 @@ def init_database(name: str, account: str, config_file: str):
         db=config[account]['DATABASE'],
         cursorclass=pymysql.cursors.DictCursor
     )
+    logging.info(config[account])
     database_engines[name] = connection
 
 
 def execute(name: str, sql: str) -> list:
     """This function not good for large queries"""
+    logging.info(sql)
     with database_engines[name].cursor() as cursor:
         cursor.execute(sql)
         output = cursor.fetchall()
