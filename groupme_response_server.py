@@ -17,8 +17,6 @@ time so we can add that later
 
 db_mappings = {'id': 'ID', 'created_at': 'CREATED_AT', 'name': 'NAME', 'text': 'MESSAGE', 'user_id': 'USER_ID'}
 
-startup_state = True
-
 class MostRecentId:
     def __init__(self, unique_id, message):
         self.unique_id = unique_id
@@ -35,15 +33,12 @@ class RequestHelper:
         self.url = url
         self.request_params = request_params
         self.post_params = post_params
+        self.startup_state = True
 
 
 async def read_message(request_helper, most_recent, chatbot):
     print("reading messages")
-    while True:
-        if startup_state:
-            startup_state = False
-            await asyncio.sleep(120)
-            continue
+    while True:           
         request = requests.get(request_helper.url, params=request_helper.request_params)
         logging.info(request.status_code)
         if request.status_code != 200:
@@ -52,18 +47,24 @@ async def read_message(request_helper, most_recent, chatbot):
             messages = request.json()['response']['messages']
             messages.reverse()
             logging.info(most_recent.unique_id)
-            for m in messages:
-                if m['created_at'] > most_recent.unique_id and most_recent.verify(m['text']) and m['name'] != 'Annoyance101':
-                    logging.info(m['text'])
-                    most_recent.unique_id = m['created_at']
-                    most_recent.message = m['text']
-                    if m['text'] is None:
-                        continue
-                    append_database(m['id'], m['created_at'], m['name'], m['text'], m['user_id'])
-                    if '@bot' in m['text']:
-                        print(m['text'])
-                        logging.info('Appending database')
-                        send_message(chatbot, m['text'], request_helper)
+            if request_helper.startup_state:
+                logging.info("Initial startup running skipping first iteration")
+                request_helper.startup_state = False
+                await asyncio.sleep(120)
+                continue
+            else:
+                for m in messages:
+                    if m['created_at'] > most_recent.unique_id and most_recent.verify(m['text']) and m['name'] != 'Annoyance101':
+                        logging.info(m['text'])
+                        most_recent.unique_id = m['created_at']
+                        most_recent.message = m['text']
+                        if m['text'] is None:
+                            continue
+                        append_database(m['id'], m['created_at'], m['name'], m['text'], m['user_id'])
+                        if '@bot' in m['text']:
+                            print(m['text'])
+                            logging.info('Appending database')
+                            send_message(chatbot, m['text'], request_helper)
         await asyncio.sleep(120)
 
 
