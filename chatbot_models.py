@@ -97,10 +97,10 @@ def create_model_readable_from_file(path: str, json_path: str) -> None:
 
     with open(path, 'w') as f:
         for counter, row in df.iterrows():
-            if row['text'] is None:
+            if row['MESSAGE'] is None:
                 print(f"Not adding {counter}")
             else:
-                f.write('{}\n'.format(row['text']))
+                f.write('{}\n'.format(row['MESSAGE']))
 
 
 def create_model_readable(path: str, json_directory_path: str) -> None:
@@ -121,7 +121,7 @@ def create_model_readable(path: str, json_directory_path: str) -> None:
     with open(path, 'w') as f:
         for counter, row in new_df.iterrows():
             if row['text'] is None:
-                print(f'Not adding {counter}')
+                logging.info(f'Not adding {counter}')
             else:
                 f.write(f"{row['text']}\n")
 

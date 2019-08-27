@@ -4,7 +4,7 @@ import datetime as dt
 
 class LoggingEnv:
     def __init__(self, application):
-        logging.basicConfig(filename=f'/home/jackh/{application}_{dt.datetime.now().strftime("%Y-%m-%d_%H:%m:%S")}.log',
+        logging.basicConfig(filename=f'/home/jack/log/{application}_{dt.datetime.now().strftime("%Y-%m-%d_%H_%m_%S")}.log',
                             filemode='w',
                             format='(%(asctime)s) (%(funcName)-8s) [%(levelname)-8s] [%(processName)-8s]: %(message)s',
                             level=logging.INFO)
