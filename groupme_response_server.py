@@ -17,6 +17,7 @@ time so we can add that later
 
 db_mappings = {'id': 'ID', 'created_at': 'CREATED_AT', 'name': 'NAME', 'text': 'MESSAGE', 'user_id': 'USER_ID'}
 
+startup_state = True
 
 class MostRecentId:
     def __init__(self, unique_id, message):
@@ -39,7 +40,10 @@ class RequestHelper:
 async def read_message(request_helper, most_recent, chatbot):
     print("reading messages")
     while True:
-
+        if startup_state:
+            startup_state = False
+            await asyncio.sleep(120)
+            continue
         request = requests.get(request_helper.url, params=request_helper.request_params)
         logging.info(request.status_code)
         if request.status_code != 200:
