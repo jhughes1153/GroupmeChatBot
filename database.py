@@ -37,7 +37,7 @@ def execute(name: str, sql: str) -> list:
         with connection.cursor() as cursor:
             cursor.execute(sql)
             output = cursor.fetchall()
-            cursor.commit()
+        connection.commit()
     except Exception as e:
         logging.error(e)
     finally:
