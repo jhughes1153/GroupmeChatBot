@@ -38,8 +38,18 @@ class RequestHelper:
 
 async def read_message(request_helper, most_recent, chatbot):
     print("reading messages")
-    while True:           
-        request = requests.get(request_helper.url, params=request_helper.request_params)
+    count = 10
+    while True:
+        try:
+            request = requests.get(request_helper.url, params=request_helper.request_params)
+        except Exception as e:
+            logging.info(e)
+            logging.info("Waiting 10 minutes before next run")
+            await asyncio.sleep(600)
+            count += 1
+            if count == 10:
+                raise KeyboardInterrupt
+
         logging.info(request.status_code)
         if request.status_code != 200:
             logging.error('Failed to get anything skipping I guess')
