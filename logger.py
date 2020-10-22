@@ -17,7 +17,7 @@ class LoggingEnv:
 def main():
     LoggingEnv('TestApplication')
 
-    logging.info('test this shit out')
+    logging.info('test this out')
     logging.warning('How about this')
     logging.error('Jere we go again')
 
