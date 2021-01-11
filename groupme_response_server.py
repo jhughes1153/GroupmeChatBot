@@ -131,7 +131,7 @@ def main():
     LoggingEnv("GroupmeChatBot")
 
     request_params = {'token': args.token}
-    post_params = {'bot_id': args.bot_id, 'text': 'Testing for fucks sake'}
+    post_params = {'bot_id': args.bot_id, 'text': 'Testing'}
     response_url = 'https://api.groupme.com/v3/groups/16915455/messages'
 
     request_helper = RequestHelper(response_url, request_params, post_params)
